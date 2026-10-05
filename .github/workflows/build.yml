@@ -26,15 +26,27 @@ jobs:
       packages: write
 
     steps:
+      - name: Check secrets
+        env:
+          MYERP_READ_TOKEN: ${{ secrets.MYERP_READ_TOKEN }}
+        run: |
+          if [ -z "$MYERP_READ_TOKEN" ]; then
+            echo "::error::Secret MYERP_READ_TOKEN не задан (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+
       - name: Checkout erp-deploy
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Checkout frappe_docker
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: frappe/frappe_docker
           ref: ${{ env.FRAPPE_DOCKER_REF }}
           path: frappe_docker
+          persist-credentials: false
 
       - name: Resolve myerp commit
         id: myerp
@@ -45,8 +57,12 @@ jobs:
           url=$(jq -r '.[] | select(.url | endswith("/myerp")) | .url' apps.json)
           branch=$(jq -r '.[] | select(.url | endswith("/myerp")) | .branch' apps.json)
           authed_url="${url/https:\/\//https://x-access-token:${MYERP_READ_TOKEN}@}"
-          sha=$(git ls-remote "$authed_url" "$branch" | cut -f1)
-          test -n "$sha"
+          # Run outside the workspace so no checkout auth header leaks into the request
+          sha=$(cd "$RUNNER_TEMP" && git ls-remote "$authed_url" "refs/heads/$branch" | cut -f1)
+          if [ -z "$sha" ]; then
+            echo "::error::Не удалось получить коммит myerp ($branch). Проверьте права токена MYERP_READ_TOKEN (Contents: Read-only на myerp)"
+            exit 1
+          fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "short=${sha::7}" >> "$GITHUB_OUTPUT"
 
