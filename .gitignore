@@ -1,0 +1,5 @@
+.env
+*.env
+!.env.example
+apps.with-token.json
+.DS_Store

@@ -1,0 +1,14 @@
+[
+  {
+    "url": "https://github.com/frappe/erpnext",
+    "branch": "v16.37.0"
+  },
+  {
+    "url": "https://github.com/frappe/crm",
+    "branch": "v1.86.0"
+  },
+  {
+    "url": "https://github.com/VladimirFalkov/myerp",
+    "branch": "main"
+  }
+]
